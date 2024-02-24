@@ -1,0 +1,150 @@
+Dans une image en noir et blanc, l'intensité est le niveau de gris : plus un point est sombre, plus son niveau de gris est faible.
+Dans une image en couleur l'intensité d'un point désigne sa couleur. Celle-ci peut être perçue comme un mélange des trois couleurs primaires (rouge, vert et bleu).
+
+L'échantillonnage consiste à découper notre image continue suivant une grille régulière et à associer une intensité à chacune de ses cellules, appelées pixels (contraction des mots anglais picture element). En d'autres termes, on procède à une discrétisation spatiale : seul un nombre fini de points de l'image continue est conservé.
+
+La quantification consiste, quant à elle, à limiter le nombre de valeurs différentes que peut prendre l'intensité. Par exemple, les niveaux de gris concernent uniquement les entiers compris entre 0 (noir) et 255 (blanc), et les couleurs dans le modèle RGB sont déterminées par un triplet de niveaux de gris (rouge : (255,0,0), vert : (0,255,0) et bleu : (0,0,255)).
+
+
+Une image numérique est caractérisée par sa définition et sa résolution.  
+
+La définition correspond à la donnée hauteur × largeur exprimée en pixels. 
+
+La résolution désigne le nombre de pixels par unité de longueur de l'image analogique. Elle permet de mesurer la qualité de l'image obtenue après numérisation : plus la résolution est élevée, meilleure est la qualité de l'image. 
+
+Le nombre de mégapixels (1 mégapixel = 1 million de pixels) mis en avant par les fabricants d'appareils photos exprime la définition, et non la résolution. Par exemple, une définition de 6000 × 4000 équivaut à 24 mégapixels.
+
+Ne vous laissez plus berner : un plus grand nombre de mégapixels donne des photos de plus grande taille, mais pas forcément de meilleure qualité !
+
+
+Pillow a été créée à partir de PIL (Python Imaging Library), une bibliothèque pour la manipulation d'images qui n'est plus maintenue aujourd'hui – pour les adeptes de Git, il s'agit d'un fork ! En pratique, Pillow s'utilise sous le même nom que PIL afin d'assurer la rétrocompatibilité.
+
+L'attribut  Image.mode  nous informe sur le format de pixel utilisé, autrement dit sur la façon dont la quantification a été faite. De plus, la méthode Image.getpixel permet de récupérer l'intensité associée au pixel à une position donnée.
+
+
+La méthode Image.getpixel  prend en argument un tuple, dont la première valeur indique l'abscisse du pixel et la deuxième, son ordonnée. Par convention dans Pillow, le repère cartésien a pour origine le pixel le plus en haut à gauche de l'image, et l'axe des ordonnées est orienté vers le bas. 
+
+Attention à l'inversion ligne/colonne et abscisse/ordonnée : l'intensité du pixel d'abscisse x
+ et d'ordonnée y
+ correspond à l'élément de la matrice situé à la y-ème ligne et x-ème colonne ! 
+
+L 'histogramme d'une image numérique est une courbe statistique représentant la répartition de ses pixels selon leur intensité. Pour une image en noir et blanc, il indique en abscisse le niveau de gris (entier entre 0 et 255) et en ordonnée, le nombre de pixels ayant cette valeur.
+
+Lorsque l'histogramme est normalisé, il indique en ordonnée la probabilité pi
+ de trouver un pixel de niveau de gris i
+ dans l'image :
+
+∀i∈{0,...,255}, pi=nombre de pixels d'intensité i/nombre total de pixels
+
+Un histogramme cumulé normalisé calcule le pourcentage de pixels ayant une valeur inférieure à un niveau de gris donné :
+
+∀i∈{0,...,255}, Pi=∑k=0ipk
+
+En revanche, l’histogramme associé à l’image dont l’exposition est relativement bonne présente une répartition des pixels sur tout l’intervalle [0,255]. Ainsi, pour corriger les défauts liés à l’exposition d'une image, il suffit simplement d'étirer son histogramme : l'objectif est d'étendre les valeurs des niveaux de gris de l'image mal exposée, majoritairement répartis dans un sous intervalle [Imin,Imax]⊂[0,255]
+ , à tout l'intervalle disponible. 
+
+Cette transformation se fait simplement à l’aide de la règle de trois : la valeur de chaque pixel est remplacée par le résultat de la formule ci-dessous.
+
+I′(x,y)=255×(I(x,y)−Imin)/Imax−Imin
+où I(x,y) et I′(x,y) désignent les intensités du pixel de coordonnées (x,y) respectivement dans l'image mal exposée et la nouvelle image.
+
+Concrètement, cette formule mathématique signifie qu'on déplace les niveaux de gris de [Imin,Imax]
+ vers [0,Imax−Imin]
+, avant de les répartir dans [0,255]. 
+
+En pratique, Imin et Imax sont souvent déterminées comme les niveaux de gris minimum et maximum de l'image après avoir éliminé 1% des valeurs extrêmes.
+
+Le contraste caractérise la répartition de lumière dans une image : plus une image est contrastée, plus la différence de luminosité entre ses zones claires et sombres est importante. En général, une image peu contrastée est terne, tandis qu'une image trop contrastée est visuellement "agressive". Dans les deux cas, l'image manque de clarté car certains de ses détails seront peu, voire pas du tout,  visibles.
+
+L'interpolation bilinéaire : la nouvelle valeur est calculée à partir des intensités des quatre pixels voisins
+
+
+Le module  PIL.Image  contient les méthodes permettant d'appliquer les transformations géométriques présentées : vous pouvez les retrouver dans la documentation.
+
+Leur paramètre d'entrée  resample  donne la possibilité de choisir le mode d'interpolation, et expand  d'agrandir l'image au cas où des pixels se trouvent en dehors des bornes après transformation.   
+
+Le bruit peut être vu comme une image constituée de pixels dont les intensités ont été déterminées de manière aléatoire.
+
+L'intensité du pixel de coordonnées (x,y)
+ dans l'image bruitée est alors donnée par la relation :
+
+I′(x,y)=I(x,y)+η(x,y)
+où I′(x,y), I(x,y) et η(x,y) désignent les intensités du pixel (x,y) respectivement dans l'image bruitée, l'image originale et le bruit.
+
+Le filtrage constitue un volet important en traitement d'images, et un de ses objectifs principaux est de nettoyer l'image en éliminant le plus de bruit possible. 
+
+Il existe différentes techniques de filtrage selon le type de bruit à atténuer. Le lissage par moyennage utilise un filtre linéaire et fait partie, en ce sens, de la classe de filtrage la plus simple
+
+Une propriété importante d'un filtre linéaire est l'invariance par translation : la modification d'un pixel dépend de son voisinage, et non de sa position dans l'image.
+
+
+En notant ∗ l'opérateur de convolution, la relation mathématique entre l'image initiale X
+ et l'image filtrée Y pour tout type de filtre linéaire s'écrit Y=H∗X
+ H est le noyau (ou masque) de convolution : il s'agit d'une matrice carrée de taille impaire 2k+1
+, qui caractérise le filtre linéaire appliqué. Par exemple, le lissage par moyennage sur un voisinage de taille 2k+1
+ a pour noyau H=1/2k+1 ⎢1 1 1
+                       1 1 1
+                       1 1 1⎥
+
+
+Le filtre gaussien s'applique en Pillow avec la méthode  PIL.Image.filter  et la classe  PIL.ImageFilter.GaussianBlur , dont le paramètre radius  en entrée désigne σ
+. 
+
+En vision par ordinateur, le terme de (local) features désigne des zones intéressantes de l'image numérique. Ces zones peuvent correspondre à des contours, des points ou des régions d'intérêt. A chaque feature détectée est associé un vecteur, appelé descripteur (feature descriptor ou feature vector), qui, comme son nom l'indique, décrit la zone concernée
+La résolution du problème d'image matching se fait alors en deux étapes :
+
+Détecter et décrire les features dans chaque image
+
+Trouver les paires de features qui se correspondent dans les deux images (features matching)
+
+
+Les bords ou contours (edges en anglais) fournissent beaucoup d'information à propos d'une image : ils délimitent les objets présents dans la scène représentée, les ombres ou encore les différentes textures.
+
+Un moyen pour détecter les bords serait de segmenter l'image en objets, mais il s'agit d'un problème difficile.
+
+
+La méthode de détection des bords par le filtre de Canny comporte cinq étapes :
+
+Etape 1. Réduction du bruit
+Etape 2. Calcul du gradient de l'image
+Etape 3. Suppression des non-maxima
+Etape 4. Seuillage
+
+
+La localisation des coins avec le détecteur de Harris-Stephens :
+
+Les coins (corners en anglais) sont d'autres features riches en informations. Ils se situent dans les régions où l'intensité varie fortement dans au moins deux directions
+
+Le détecteur de Harris-Stephens, développé en 1988, est une technique très populaire permettant de repérer les coins dans une image. Il est basé sur le détecteur de Moravec, qui exploite le gradient. 
+
+Le détecteur de Moravec
+Le détecteur de Moravec permet de déterminer les changements d'intensité autour d'un pixel donné.
+
+
+Étapes de l'algorithme du détecteur de Harris-Stephens
+La détection des coins avec le détecteur de Harris-Stephens se fait donc en quatre étapes :
+
+Etape 1. Calcul de la matrice $\(M\)$ pour chaque pixel. Les dérivées partielles sont approximées en filtrant l'image par convolution avec les masques de Sobel
+
+Etape 2. Calcul de $\(R = det(M) - k.trace(M)^2\)$ pour chaque pixel
+
+Etape 3. Seuillage de $\(R\)$. On sélectionne les pixels pour lesquels $\(R > s\)$ , où $\(s\)$ est un seuil à choisir
+
+Etape 4. Suppression des non-maxima de $\(R\)$. Les coins correspondent aux maxima locaux de $\(R\)$ : pour les trouver, on applique aux pixels sélectionnés la méthode décrite dans l'étape 3 du filtre de Canny
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
